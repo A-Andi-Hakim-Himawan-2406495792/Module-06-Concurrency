@@ -56,3 +56,18 @@ Mutex memastikan hanya satu thread yang mengakses data pada satu waktu (menghind
 
 Setelah menggunakan ThreadPool, server dapat menangani beberapa request secara paralel. Saat diuji kembali dengan endpoint /sleep, request lain tidak lagi ikut tertunda, yang menunjukkan bahwa server sudah tidak blocking.
 
+## 🎁 Commit Bonus Reflection Notes
+
+### (Function improvement)
+
+Pada tahap ini, saya melakukan perbaikan pada fungsi pembuatan `ThreadPool`, yaitu dengan mengubah fungsi `new` menjadi `build` yang mengembalikan `Result<ThreadPool, PoolCreationError>`.
+
+Sebelumnya, fungsi `new` menggunakan `assert!(size > 0)` untuk memastikan ukuran thread pool valid. Namun, pendekatan ini memiliki kelemahan karena jika kondisi tidak terpenuhi (misalnya `size = 0`), program akan langsung panic dan berhenti secara paksa. Hal ini kurang ideal, terutama untuk aplikasi yang lebih kompleks atau berjalan di lingkungan production, karena tidak memberikan kesempatan untuk menangani error secara elegan.
+
+Dengan menggunakan `build`, validasi dilakukan menggunakan kondisi biasa (`if size == 0`) dan mengembalikan `Err(PoolCreationError)` jika input tidak valid. Pendekatan ini memungkinkan caller (misalnya di `main.rs`) untuk menangani error sesuai kebutuhan, misalnya dengan logging, retry, atau fallback ke nilai default.
+
+Saya juga menyadari bahwa penggunaan `Result` merupakan idiom yang sangat penting dalam Rust, karena mendorong penanganan error secara eksplisit dan aman. Dibandingkan dengan panic, pendekatan ini membuat program lebih robust dan tidak mudah crash hanya karena kesalahan input yang sebenarnya bisa diantisipasi.
+
+Selain itu, dengan tetap menggunakan `.unwrap()` di `main.rs`, saya memahami bahwa kita masih bisa memilih untuk memperlakukan error sebagai fatal, tetapi keputusan tersebut berada di level pemanggil, bukan dipaksakan di dalam fungsi `ThreadPool` itu sendiri. Ini memberikan fleksibilitas desain yang lebih baik.
+
+Dari perubahan ini, saya belajar bahwa desain API yang baik tidak hanya fokus pada fungsi yang berjalan dengan benar, tetapi juga bagaimana menangani kondisi error secara aman dan fleksibel.
