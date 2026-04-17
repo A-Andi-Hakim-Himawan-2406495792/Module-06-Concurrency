@@ -21,3 +21,15 @@ Response kemudian digabungkan menggunakan format! dengan pemisah \r\n sesuai sta
 Dari tahap ini, saya memahami bahwa browser membutuhkan format response HTTP yang lengkap dan benar agar dapat menampilkan halaman dengan baik.
 
 ![Commit 2 Screenshot](/assets/images/commit2.jpeg)
+
+## 🔍 Commit 3 Reflection Notes
+
+Pada tahap ini, server mulai dapat membedakan request berdasarkan URL.
+
+Request line pertama diambil dan dibandingkan. Jika request adalah "GET / HTTP/1.1", maka server mengembalikan hello.html, jika tidak maka mengembalikan 404.html.
+
+Refactoring dilakukan dengan memisahkan status line dan nama file. Hal ini membuat kode lebih rapi dan mudah dikembangkan dibandingkan sebelumnya yang hanya mengembalikan satu response.
+
+Dengan pendekatan ini, server sudah memiliki konsep routing sederhana.
+
+![Commit 3 Screenshot](/assets/images/404.jpeg)
