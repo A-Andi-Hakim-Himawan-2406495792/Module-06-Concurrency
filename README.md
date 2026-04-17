@@ -44,3 +44,15 @@ Hal ini terjadi karena server masih menggunakan single thread, sehingga hanya da
 
 Dari sini terlihat bahwa single-threaded server tidak efisien untuk menangani banyak request secara bersamaan.
 
+## ⚡ Commit 5 Reflection Notes
+Pada tahap ini, server diubah menjadi multithreaded menggunakan ThreadPool.
+
+ThreadPool bekerja dengan membuat sejumlah worker thread di awal, lalu setiap request yang masuk akan dikirim sebagai job ke worker melalui channel.
+
+Digunakan mpsc (multi-producer, single-consumer) untuk mengirim job dari main thread ke worker thread. Untuk memungkinkan beberapa thread mengakses data yang sama, digunakan Arc dan Mutex.
+
+Arc memungkinkan data dimiliki oleh beberapa thread
+Mutex memastikan hanya satu thread yang mengakses data pada satu waktu (menghindari race condition)
+
+Setelah menggunakan ThreadPool, server dapat menangani beberapa request secara paralel. Saat diuji kembali dengan endpoint /sleep, request lain tidak lagi ikut tertunda, yang menunjukkan bahwa server sudah tidak blocking.
+
