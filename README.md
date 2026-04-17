@@ -47,9 +47,8 @@ Dari tahap ini, saya memahami bahwa browser hanya akan menampilkan halaman jika 
 
 📸 Screenshot hasil:
 
-```md
 ![Commit 2 Screenshot](/assets/images/commit2.jpeg)
-```
+
 
 ---
 
@@ -92,9 +91,8 @@ Dari sini saya menyadari bahwa ini adalah bentuk paling sederhana dari routing y
 
 📸 Screenshot hasil:
 
-```md
 ![Commit 3 Screenshot](/assets/images/404.jpeg)
-```
+
 
 ---
 
