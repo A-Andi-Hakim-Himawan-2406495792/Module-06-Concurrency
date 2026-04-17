@@ -33,3 +33,14 @@ Refactoring dilakukan dengan memisahkan status line dan nama file. Hal ini membu
 Dengan pendekatan ini, server sudah memiliki konsep routing sederhana.
 
 ![Commit 3 Screenshot](/assets/images/404.jpeg)
+
+## 🐢 Commit 4 Reflection Notes
+
+Pada tahap ini dilakukan simulasi request slow dengan menambahkan delay selama 10 detik pada endpoint /sleep.
+
+Ketika membuka dua tab browser, satu mengakses /sleep dan satu lagi mengakses /, terlihat bahwa request kedua ikut tertunda.
+
+Hal ini terjadi karena server masih menggunakan single thread, sehingga hanya dapat memproses satu request dalam satu waktu.
+
+Dari sini terlihat bahwa single-threaded server tidak efisien untuk menangani banyak request secara bersamaan.
+
