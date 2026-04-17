@@ -1,73 +1,219 @@
+## 📘 Rust Web Server — Tutorial Modul 6
+
+Tutorial ini mengacu pada The Rust Programming Language Chapter 20.
+Pada modul ini, saya membangun web server sederhana menggunakan Rust dari nol, mulai dari server single-thread hingga multithreaded menggunakan ThreadPool.
+
+Melalui proses ini, saya tidak hanya mengikuti implementasi, tetapi juga memahami bagaimana web server bekerja di balik framework modern seperti Django atau Express.
+
+---
+
 ## 🧩 Commit 1 Reflection Notes
 
-Pada tahap ini, saya mempelajari bagaimana server menerima request dari browser menggunakan TcpListener dan TcpStream.
+### (Handle-connection, check response)
 
-Setiap koneksi dibaca menggunakan BufReader, yang memungkinkan pembacaan data secara efisien. Request HTTP dibaca per baris menggunakan .lines(), kemudian dihentikan saat menemukan baris kosong dengan .take_while(|line| !line.is_empty()).
+Pada tahap ini, saya mempelajari bagaimana server menerima koneksi dari browser menggunakan `TcpListener` dan `TcpStream`.
 
-Baris kosong ini menandakan akhir dari HTTP header. Dari output terminal, terlihat bahwa browser mengirimkan request dalam bentuk teks yang berisi method (GET), host, user-agent, dan lain-lain.
+Setiap koneksi yang masuk diproses oleh fungsi `handle_connection`. Untuk membaca data dari client, digunakan `BufReader` yang membantu membaca stream secara efisien dengan buffering.
 
-Hal ini membantu saya memahami bagaimana komunikasi dasar antara browser dan server terjadi melalui protokol HTTP.
+Request HTTP dibaca baris per baris menggunakan `.lines()`, kemudian dihentikan saat menemukan baris kosong dengan `.take_while(|line| !line.is_empty())`. Baris kosong ini menandakan akhir dari HTTP header.
+
+Dari output terminal, terlihat bahwa request HTTP memiliki struktur seperti:
+
+* Method (GET)
+* Path (/)
+* Header (Host, User-Agent, dll)
+
+Dari sini saya memahami bahwa komunikasi antara browser dan server sebenarnya berupa teks dengan format tertentu (HTTP)
+
+---
 
 ## 🌐 Commit 2 Reflection Notes
 
-Pada tahap ini, server mulai mengirimkan response berupa HTML ke browser.
+### (Returning HTML)
 
-Response HTTP disusun secara manual, terdiri dari status line (HTTP/1.1 200 OK), header (Content-Length), dan body (isi HTML).
+Pada tahap ini, server mulai mengirimkan response berupa halaman HTML ke browser.
 
-File HTML dibaca menggunakan fs::read_to_string, kemudian panjangnya dihitung untuk dimasukkan ke dalam header Content-Length. Header ini penting agar browser mengetahui ukuran data yang diterima.
+Response HTTP disusun secara manual dengan struktur:
 
-Response kemudian digabungkan menggunakan format! dengan pemisah \r\n sesuai standar HTTP.
+* Status line (`HTTP/1.1 200 OK`)
+* Header (`Content-Length`)
+* Body (isi file HTML)
 
-Dari tahap ini, saya memahami bahwa browser membutuhkan format response HTTP yang lengkap dan benar agar dapat menampilkan halaman dengan baik.
+File HTML dibaca menggunakan `fs::read_to_string`, lalu panjangnya dihitung untuk mengisi header `Content-Length`. Header ini penting agar browser mengetahui kapan response selesai diterima.
 
+Response kemudian digabung menggunakan `format!` dengan separator `\r\n`, yang merupakan standar dalam protokol HTTP.
+
+Dari tahap ini, saya memahami bahwa browser hanya akan menampilkan halaman jika format response HTTP valid. Tidak cukup hanya mengirim HTML, tetapi harus sesuai dengan struktur protokol.
+
+📸 Screenshot hasil:
+
+```md
 ![Commit 2 Screenshot](/assets/images/commit2.jpeg)
+```
+
+---
 
 ## 🔍 Commit 3 Reflection Notes
 
-Pada tahap ini, server mulai dapat membedakan request berdasarkan URL.
+### (Validating request and selectively responding)
 
-Request line pertama diambil dan dibandingkan. Jika request adalah "GET / HTTP/1.1", maka server mengembalikan hello.html, jika tidak maka mengembalikan 404.html.
+Pada tahap ini, saya mengimplementasikan mekanisme routing sederhana berdasarkan request dari browser.
 
-Refactoring dilakukan dengan memisahkan status line dan nama file. Hal ini membuat kode lebih rapi dan mudah dikembangkan dibandingkan sebelumnya yang hanya mengembalikan satu response.
+Request line pertama diambil menggunakan:
 
-Dengan pendekatan ini, server sudah memiliki konsep routing sederhana.
+```rust
+let request_line = buf_reader.lines().next().unwrap().unwrap();
+```
 
+Struktur request ini berisi method, path, dan versi HTTP, contohnya:
+
+```text
+GET / HTTP/1.1
+```
+
+Dengan memanfaatkan informasi ini, saya membuat logika:
+
+* Jika path adalah `/`, maka server mengembalikan `hello.html`
+* Jika tidak, maka server mengembalikan `404.html`
+
+Refactoring dilakukan dengan memisahkan `status_line` dan `filename` ke dalam satu tuple:
+
+```rust
+let (status_line, filename) = ...
+```
+
+Pendekatan ini membuat kode:
+
+* Lebih rapi (tidak duplikasi)
+* Lebih mudah dikembangkan (tinggal tambah kondisi lainnya)
+* Lebih modular
+
+Dari sini saya menyadari bahwa ini adalah bentuk paling sederhana dari routing yang biasanya disediakan oleh framework. Dengan mengimplementasikannya sendiri, saya jadi lebih memahami bagaimana request dipetakan ke response.
+
+📸 Screenshot hasil:
+
+```md
 ![Commit 3 Screenshot](/assets/images/404.jpeg)
+```
+
+---
 
 ## 🐢 Commit 4 Reflection Notes
 
-Pada tahap ini dilakukan simulasi request slow dengan menambahkan delay selama 10 detik pada endpoint /sleep.
+### (Simulation of slow request)
 
-Ketika membuka dua tab browser, satu mengakses /sleep dan satu lagi mengakses /, terlihat bahwa request kedua ikut tertunda.
+Pada tahap ini dilakukan simulasi request lambat dengan menambahkan delay menggunakan:
 
-Hal ini terjadi karena server masih menggunakan single thread, sehingga hanya dapat memproses satu request dalam satu waktu.
+```rust
+thread::sleep(Duration::from_secs(10));
+```
 
-Dari sini terlihat bahwa single-threaded server tidak efisien untuk menangani banyak request secara bersamaan.
+Endpoint `/sleep` akan menyebabkan server menunggu selama 10 detik sebelum memberikan response.
+
+Saat diuji dengan dua tab browser:
+
+* Tab pertama mengakses `/sleep`
+* Tab kedua mengakses `/`
+
+Terlihat bahwa request kedua ikut tertunda hingga request pertama selesai. Hal ini terjadi karena server masih menggunakan single thread, sehingga hanya dapat memproses satu request dalam satu waktu.
+
+Dari sini saya memahami bahwa:
+
+* Single-threaded server bersifat blocking
+* Satu request lambat dapat menghambat request lain
+* Pendekatan ini tidak scalable untuk banyak user
+
+---
 
 ## ⚡ Commit 5 Reflection Notes
-Pada tahap ini, server diubah menjadi multithreaded menggunakan ThreadPool.
 
-ThreadPool bekerja dengan membuat sejumlah worker thread di awal, lalu setiap request yang masuk akan dikirim sebagai job ke worker melalui channel.
+### (Multithreaded server using Threadpool)
 
-Digunakan mpsc (multi-producer, single-consumer) untuk mengirim job dari main thread ke worker thread. Untuk memungkinkan beberapa thread mengakses data yang sama, digunakan Arc dan Mutex.
+Pada tahap ini, server diubah menjadi multithreaded menggunakan ThreadPool untuk mengatasi masalah blocking yang terjadi pada server single-threaded sebelumnya.
 
-Arc memungkinkan data dimiliki oleh beberapa thread
-Mutex memastikan hanya satu thread yang mengakses data pada satu waktu (menghindari race condition)
+Perubahan penting pada tahap ini adalah penambahan file baru, yaitu `src/lib.rs`. File ini digunakan untuk memisahkan implementasi ThreadPool dari `main.rs`, sehingga kode menjadi lebih modular dan terstruktur. Dengan pemisahan ini, `main.rs` hanya berfokus pada logic server, sedangkan pengelolaan thread ditangani oleh modul terpisah.
 
-Setelah menggunakan ThreadPool, server dapat menangani beberapa request secara paralel. Saat diuji kembali dengan endpoint /sleep, request lain tidak lagi ikut tertunda, yang menunjukkan bahwa server sudah tidak blocking.
+ThreadPool diimplementasikan dengan konsep:
+
+1. Membuat sejumlah worker thread di awal (pre-spawned threads)
+2. Menyimpan worker dalam sebuah vector
+3. Mengirimkan setiap request sebagai job ke worker melalui channel
+
+Di `main.rs`, perubahan utama adalah mengganti pemanggilan langsung:
+
+```rust
+handle_connection(stream);
+```
+
+menjadi:
+
+```rust
+pool.execute(|| {
+    handle_connection(stream);
+});
+```
+
+Dengan demikian, setiap request tidak lagi diproses langsung oleh main thread, tetapi dikirim ke worker thread dalam ThreadPool.
+
+Komunikasi antar thread menggunakan `mpsc` (multi-producer, single-consumer):
+
+* Main thread bertindak sebagai producer yang mengirim job
+* Worker thread bertindak sebagai consumer yang menerima job
+
+Karena receiver digunakan oleh banyak thread, digunakan:
+
+* `Arc` (Atomic Reference Counting) → agar data dapat dimiliki bersama oleh beberapa thread
+* `Mutex` → untuk memastikan hanya satu thread yang mengakses data pada satu waktu, sehingga menghindari race condition
+
+Alur kerja sistem:
+
+```text
+Request masuk → dikirim ke channel → worker mengambil job → dieksekusi
+```
+
+Setelah implementasi ini, saya melakukan pengujian ulang dengan endpoint `/sleep`. Berbeda dengan sebelumnya, request lain tidak lagi ikut tertunda. Hal ini menunjukkan bahwa server sudah dapat menangani beberapa request secara paralel.
+
+Dari tahap ini, saya memahami bahwa penggunaan ThreadPool tidak hanya memungkinkan concurrency, tetapi juga lebih efisien dibanding membuat thread baru setiap kali ada request, karena thread dapat digunakan kembali (reuse), sehingga penggunaan resource menjadi lebih optimal.
+
+---
 
 ## 🎁 Commit Bonus Reflection Notes
 
 ### (Function improvement)
 
-Pada tahap ini, saya melakukan perbaikan pada fungsi pembuatan `ThreadPool`, yaitu dengan mengubah fungsi `new` menjadi `build` yang mengembalikan `Result<ThreadPool, PoolCreationError>`.
+Pada tahap ini, saya memperbaiki desain fungsi `ThreadPool` dengan mengganti `new` menjadi `build` yang mengembalikan `Result`.
 
-Sebelumnya, fungsi `new` menggunakan `assert!(size > 0)` untuk memastikan ukuran thread pool valid. Namun, pendekatan ini memiliki kelemahan karena jika kondisi tidak terpenuhi (misalnya `size = 0`), program akan langsung panic dan berhenti secara paksa. Hal ini kurang ideal, terutama untuk aplikasi yang lebih kompleks atau berjalan di lingkungan production, karena tidak memberikan kesempatan untuk menangani error secara elegan.
+Sebelumnya:
 
-Dengan menggunakan `build`, validasi dilakukan menggunakan kondisi biasa (`if size == 0`) dan mengembalikan `Err(PoolCreationError)` jika input tidak valid. Pendekatan ini memungkinkan caller (misalnya di `main.rs`) untuk menangani error sesuai kebutuhan, misalnya dengan logging, retry, atau fallback ke nilai default.
+```rust
+assert!(size > 0);
+```
 
-Saya juga menyadari bahwa penggunaan `Result` merupakan idiom yang sangat penting dalam Rust, karena mendorong penanganan error secara eksplisit dan aman. Dibandingkan dengan panic, pendekatan ini membuat program lebih robust dan tidak mudah crash hanya karena kesalahan input yang sebenarnya bisa diantisipasi.
+Jika kondisi tidak terpenuhi, program akan panic dan langsung berhenti.
 
-Selain itu, dengan tetap menggunakan `.unwrap()` di `main.rs`, saya memahami bahwa kita masih bisa memilih untuk memperlakukan error sebagai fatal, tetapi keputusan tersebut berada di level pemanggil, bukan dipaksakan di dalam fungsi `ThreadPool` itu sendiri. Ini memberikan fleksibilitas desain yang lebih baik.
+Setelah diubah:
 
-Dari perubahan ini, saya belajar bahwa desain API yang baik tidak hanya fokus pada fungsi yang berjalan dengan benar, tetapi juga bagaimana menangani kondisi error secara aman dan fleksibel.
+```rust
+pub fn build(size: usize) -> Result<ThreadPool, PoolCreationError>
+```
+
+Jika input tidak valid:
+
+```rust
+return Err(PoolCreationError);
+```
+
+Perubahan ini memberikan beberapa keuntungan:
+
+* Program tidak langsung crash
+* Error dapat ditangani secara fleksibel
+* Lebih sesuai dengan prinsip error handling Rust
+
+Saya juga menyadari bahwa penggunaan `Result` memaksa kita untuk memikirkan kemungkinan error sejak awal.
+
+Menariknya, di `main.rs` saya masih menggunakan `.unwrap()`, yang berarti saya tetap memilih untuk panic jika terjadi error. Namun, sekarang keputusan tersebut berada di level pemanggil, bukan di dalam fungsi `ThreadPool`.
+
+Dari sini saya belajar bahwa desain API yang baik tidak hanya tentang fungsi yang berjalan, tetapi juga bagaimana fungsi tersebut menangani error secara aman dan fleksibel.
+
+---
+
